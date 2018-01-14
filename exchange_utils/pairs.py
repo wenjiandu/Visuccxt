@@ -1,4 +1,4 @@
-from exchange.currencies import *
+from exchange_utils.currencies import *
 
 
 # --------- [ Pair Available ] ---------
@@ -20,19 +20,18 @@ def is_pair_available_at_exchange(exchange, pair):
         return False
 
 
+# def get_pairs_available_at_exchange(exchange, pairs):
+#     check_isinstance_exchange(exchange)
+#     check_isinstance_list(pairs)
+#
+#     mask = []
+#
+#     for pair in pairs:
+#         mask.append(is_pair_available_at_exchange(exchange, pair))
+#     return mask
+
+
 def get_pairs_available_at_exchange(exchange, pairs):
-
-    check_isinstance_exchange(exchange)
-    check_isinstance_list(pairs)
-
-    mask = []
-
-    for pair in pairs:
-        mask.append(is_pair_available_at_exchange(exchange, pair))
-    return mask
-
-def get_pairs_available_at_exchange(exchange, pairs):
-
     check_isinstance_exchange(exchange)
     check_isinstance_list(pairs)
 
@@ -41,7 +40,6 @@ def get_pairs_available_at_exchange(exchange, pairs):
         if is_pair_available_at_exchange(exchange, pair):
             out.append(pair)
     return out
-
 
 
 # --------- [ Get Pairs from Exchange ] ---------
@@ -66,6 +64,7 @@ def get_all_pairs_at_exchanges(exchanges):
 
     for exchange in exchanges:
         pairs_s.update(get_all_pairs_at_exchange(exchange))
+
     return pairs_s
 
 
@@ -171,7 +170,7 @@ def get_pairs_by_bases_at_exchanges(exchanges, bases):
     to be included in the result.
 
     :param exchanges: a list of exchanges (as Exchange)
-    :param base: a list of base currency (as str)
+    :param bases: a list of base currency (as str)
     :return: a set of pairs (as str)
     """
     check_isinstance_list(exchanges)
@@ -216,7 +215,7 @@ def get_all_mutual_pairs_by_bases_at_exchanges(exchanges, bases):
     included in the result.
 
     :param exchanges: a list of exchanges (as Exchange)
-    :param base: a base currency (as str)
+    :param bases: a list of base currency (as str)
     :return: a set of pairs (as str)
     """
     check_isinstance_list(exchanges)
@@ -299,7 +298,7 @@ def get_pairs_by_quotes_at_exchanges(exchanges, quotes):
     to be included in the result.
 
     :param exchanges: a list of exchanges (as Exchange)
-    :param quote: a list of quote currency (as str)
+    :param quotes: a list of quote currency (as str)
     :return: a set of pairs (as str)
     """
     check_isinstance_list(exchanges)
@@ -344,7 +343,7 @@ def get_all_mutual_pairs_by_quotes_at_exchanges(exchanges, quotes):
     included in the result.
 
     :param exchanges: a list of exchanges (as Exchange)
-    :param quote: a quote currency (as str)
+    :param quotes: a list of quote currencies
     :return: a set of pairs (as str)
     """
     check_isinstance_list(exchanges)
@@ -409,7 +408,7 @@ def get_pairs_by_currency_at_exchanges(exchanges, currency):
     to be included in the result.
 
     :param exchanges: a list of exchanges (as Exchange)
-    :param quote: a currency (as str)
+    :param currency: a currency (as str)
     :return: a set of pairs (as str)
     """
     check_isinstance_list(exchanges)
@@ -430,7 +429,7 @@ def get_pairs_by_currencies_at_exchanges(exchanges, currencies):
     to be included in the result.
 
     :param exchanges: a list of exchanges (as Exchange)
-    :param quote: a list of currencies (as str)
+    :param currencies: a list of currencies (as str)
     :return: a set of pairs (as str)
     """
     check_isinstance_list(exchanges)
@@ -452,7 +451,7 @@ def get_all_mutual_pairs_by_currency_at_exchanges(exchanges, currency):
     included in the result.
 
     :param exchanges: a list of exchanges (as Exchange)
-    :param quote: a currency (as str)
+    :param currency: a currency (as str)
     :return: a set of pairs (as str)
     """
     check_isinstance_list(exchanges)
@@ -476,7 +475,7 @@ def get_all_mutual_pairs_by_currencies_at_exchanges(exchanges, currencies):
     included in the result.
 
     :param exchanges: a list of exchanges (as Exchange)
-    :param quote: a list of currencies (as str)
+    :param currencies: a list of currencies (as str)
     :return: a set of pairs (as str)
     """
     check_isinstance_list(exchanges)

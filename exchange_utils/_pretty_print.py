@@ -1,7 +1,7 @@
 from pprint import pprint
 
-from exchange._checks import *
-from exchange.exchange import get_all_exchange_ids
+from exchange_utils._checks import *
+from exchange_utils.exchange import get_all_exchange_ids
 
 
 def pretty_exchange(exchange):

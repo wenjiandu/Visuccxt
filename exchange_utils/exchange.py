@@ -5,15 +5,15 @@ from multiprocessing import Pool
 import ccxt
 from fuzzywuzzy import fuzz
 
-from exchange.funding_fees import has_deposit_fee_for_currency, \
+from exchange_utils.funding_fees import has_deposit_fee_for_currency, \
     has_deposit_fees_for_any_its_currencies, \
     has_deposit_fees_for_any_given_currency, \
     has_withdraw_fee_for_currency, \
     has_withdraw_fees_for_any_its_currencies, \
     has_withdraw_fees_for_any_given_currency
-from exchange.pairs import *
+from exchange_utils.pairs import *
 # --------- [ Exchange IDs ] ---------
-from exchange.quote import is_quote_available_at_exchange
+from exchange_utils.quote import is_quote_available_at_exchange
 
 
 def get_all_exchange_ids(exchanges=None):

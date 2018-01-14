@@ -1,4 +1,4 @@
-from exchange._checks import check_isinstance_exchange, check_isinstance_string, \
+from exchange_utils._checks import check_isinstance_exchange, check_isinstance_string, \
     check_isinstance_list
 
 
