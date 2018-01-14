@@ -52,8 +52,8 @@ class DataCollectorNumpy:
         for pair, ticker_types in self.values.items():
             pairs[pair] = {}
             for ticker_type, values in ticker_types.items():
-                if to_slice > 0: # Return the specified slice
+                if to_slice > 0:  # Return the specified slice
                     pairs[pair][ticker_type] = values[:to_slice]
-                else: # Return only the last element.
+                else:  # Return only the last element.
                     pairs[pair][ticker_type] = [values[0]]
         return pairs
