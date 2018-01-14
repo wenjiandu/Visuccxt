@@ -3,7 +3,7 @@ import time
 
 import ccxt
 
-import pairs
+from exchange import pairs
 from data.dataCollectorNumpy import DataCollectorNumpy
 from data.dataFetcher import TickersFetcher
 from data.dataSaver import DataSaver

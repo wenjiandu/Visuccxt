@@ -1,8 +1,8 @@
-from _checks import *
+from exchange._checks import *
 
 
 # --------- [ Currency ] ---------
-from _checks import check_isinstance_exchange, check_isinstance_list
+from exchange._checks import check_isinstance_exchange, check_isinstance_list
 
 
 def is_currency_available_at_exchange(exchange, currency):

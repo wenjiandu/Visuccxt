@@ -1,5 +1,4 @@
-from currencies import *
-from exchange import *
+from exchange.currencies import *
 
 
 # --------- [ Pair Available ] ---------
