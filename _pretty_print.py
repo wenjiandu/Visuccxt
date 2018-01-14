@@ -2,7 +2,6 @@ import ccxt
 from ccxt.base.exchange import Exchange
 from _checks import *
 from exchange import *
-from ohlcv import *
 
 from pprint import pprint
 

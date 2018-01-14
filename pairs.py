@@ -21,7 +21,7 @@ def is_pair_available_at_exchange(exchange, pair):
         return False
 
 
-def are_pairs_available_at_exchange(exchange, pairs):
+def get_pairs_available_at_exchange(exchange, pairs):
 
     check_isinstance_exchange(exchange)
     check_isinstance_list(pairs)
@@ -31,6 +31,18 @@ def are_pairs_available_at_exchange(exchange, pairs):
     for pair in pairs:
         mask.append(is_pair_available_at_exchange(exchange, pair))
     return mask
+
+def get_pairs_available_at_exchange(exchange, pairs):
+
+    check_isinstance_exchange(exchange)
+    check_isinstance_list(pairs)
+
+    out = []
+    for pair in pairs:
+        if is_pair_available_at_exchange(exchange, pair):
+            out.append(pair)
+    return out
+
 
 
 # --------- [ Get Pairs from Exchange ] ---------
