@@ -1,4 +1,5 @@
 import numpy as np
+import time
 
 
 class DataCollectorNumpy:
@@ -31,19 +32,22 @@ class DataCollectorNumpy:
             }
             for pair in self.pairs
         }
-        self.value_count = 0
+        self.timestamps = np.empty(maxlen)
+        self.entry_count = 0
         self.len = maxlen
 
     # TODO: implement a variant with a temp array that only
     # gets append every 1000 iterations
     def append(self, tickers):
 
+        self.timestamps = np.roll(self.timestamps, 1)
+        self.timestamps[0] = int(time.time() * 10)  # 1e-1 seconds
         for pair, values in tickers.items():
             for ticker_type, value in values.items():
                 self.values[pair][ticker_type] = \
                     np.roll(self.values[pair][ticker_type], 1)
                 self.values[pair][ticker_type][0] = value
-        self.value_count += 1
+        self.entry_count += 1
 
     def get(self, amount):
         """Returns the specified amount of latest items."""
