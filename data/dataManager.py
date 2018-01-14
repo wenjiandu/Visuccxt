@@ -1,3 +1,4 @@
+import pprint
 import time
 
 import ccxt
@@ -11,10 +12,13 @@ from data.dataSaver import DataSaver
 class DataManager:
 
     def __init__(self, exchanges, pairs, ticker_types=None,
-                 fetch_interval=10, save_interval=500, adaptive_time=True):
+                 fetch_interval=10, save_interval=500, adaptive_time=True,
+                 restore=False, restore_filepath_dict=None):
+        print("Main DataManager")
         self.exchanges = exchanges
         if isinstance(exchanges, ccxt.Exchange):
             self.exchanges = [exchanges]
+        self.exchangeIds = [exchange.id for exchange in self.exchanges]
         self.pairs = pairs
         if ticker_types:
             self.ticker_types = ticker_types
@@ -43,6 +47,9 @@ class DataManager:
                 DataCollectorNumpy(exchange, pairs_available)
             self.savers[exchange.id] = \
                 DataSaver(exchange, pairs_available)
+
+        if restore:
+            self.restore(restore_filepath_dict)
 
     def _fetch(self):
         self.fetcher.fetch()
@@ -79,3 +86,20 @@ class DataManager:
                 self.collectors[exchange]
             )
         print("Successfully saved DataCollectors!")
+
+    def restore(self, restore_filepath_dict=None):
+        if restore_filepath_dict:
+            exchanges = restore_filepath_dict.keys()
+        else:
+            exchanges = self.exchangeIds
+        for exchange in exchanges:
+            filepath = restore_filepath_dict[exchange] \
+                if restore_filepath_dict else None
+            self.collectors[exchange] = \
+                self.savers[exchange].load_pickle(
+                    self.collectors[exchange], filepath
+                )
+
+    def print(self):
+        for exchange in self.exchangeIds:
+            pprint.pprint(self.collectors[exchange].values)

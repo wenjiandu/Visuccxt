@@ -45,7 +45,7 @@ class DataSaver:
         with open(path, 'wb') as f:
             pickle.dump(data_collector, f, pickle.HIGHEST_PROTOCOL)
 
-    def load_pickle(self, data_collector, filename=None):
+    def load_pickle(self, data_collector, filepath=None):
 
         exchangeId = data_collector.exchangeId
         pairs = data_collector.pairs
@@ -57,23 +57,23 @@ class DataSaver:
 
         directory = self._hash(exchangeId, pairs, ticker_types)
 
+        if filepath:
+            with open(os.path.join(directory, filepath), 'rb') as f:
+                data_collector_ = pickle.load(f)
+                print('Successfully loaded: {}'.format(filepath))
+                return data_collector_
+
         if os.path.exists(directory):
-            if filename:
-                with open(os.path.join(directory, filename), 'rb') as f:
-                    data_collector = pickle.load(f)
-                    print('Successfully loaded: {}'.format(filename))
-                    return data_collector
-            else:
-                files = os.listdir(directory)
-                if not files:
-                    print("Couldn't load previous data. "
-                          "No files available in {}".format(directory))
-                    return data_collector
-                latest_pkl = sorted(files)[-1]
-                with open(os.path.join(directory, latest_pkl), 'rb') as f:
-                    data_collector = pickle.load(f)
-                    print('Successfully loaded: {}'.format(latest_pkl))
-                    return data_collector
+            files = os.listdir(directory)
+            if not files:
+                print("Couldn't load previous data. "
+                      "No files available in {}".format(directory))
+                return data_collector
+            latest_pkl = sorted(files)[-1]
+            with open(os.path.join(directory, latest_pkl), 'rb') as f:
+                data_collector_ = pickle.load(f)
+                print('Successfully loaded: {}'.format(latest_pkl))
+                return data_collector_
         else:
             print("Couldn't load previous data. "
                   "Directory '{}' not available".format(directory))
