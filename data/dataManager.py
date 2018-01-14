@@ -103,3 +103,16 @@ class DataManager:
     def print(self):
         for exchange in self.exchangeIds:
             pprint.pprint(self.collectors[exchange].values)
+
+    def get_collectors(self):
+        collector_dict = {
+            exchange: collector
+            for exchange, collector in self.collectors.items()
+        }
+        return collector_dict
+
+    def get_collector(self, exchange):
+        if isinstance(exchange, str):
+            return self.collectors[exchange]
+        if isinstance(exchange, ccxt.Exchange):
+            return self.collectors[exchange.id]
