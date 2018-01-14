@@ -19,6 +19,7 @@ class DataCollectorNumpy:
         :param dtype: data type that should be used for the collector.
         :param maxlen: the max length of the numpy array.
         """
+        self.exchange = exchange
         self.exchangeId = exchange.id
         self.pairs = pairs
         if ticker_types:
