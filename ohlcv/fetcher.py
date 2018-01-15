@@ -14,7 +14,7 @@ import tqdm
 class OHLCVFetcher:
 
     def __init__(self, exchange, symbols, basepath=None, since=None,
-                 timeframes=None):
+                 timeframes=None, resume=True, reuse_fetch_estimate=True):
 
         if isinstance(exchange, ccxt.Exchange):
             self.exchange = exchange
@@ -31,12 +31,14 @@ class OHLCVFetcher:
             )
 
         self.basepath = basepath
+
         if isinstance(symbols, str):
             symbols = [symbols]
         self.symbols = symbols
+        self._timeframes = ['1m', '1h', '1d', '1M', '1y']
 
         if timeframes is None:
-            self.timeframes = ['1m', '1h', '1d', '1M', '1y']
+            self.timeframes = self._timeframes
         else:
             if isinstance(timeframes, str):
                 timeframes = [timeframes]
@@ -57,18 +59,46 @@ class OHLCVFetcher:
         self.tmp_values = {}
         self.values = {}
         self.counter = {}
+        self.downloads_completed = {}
         for symbol in self.symbols:
             self.estimators[symbol] = {}
             self.tmp_values[symbol] = {}
             self.counter[symbol] = {}
             self.values[symbol] = {}
+            self.downloads_completed[symbol] = {}
             for timeframe in self.timeframes:
                 self.estimators[symbol][timeframe] = None
                 self.tmp_values[symbol][timeframe] = []
                 self.counter[symbol][timeframe] = 0
                 self.values[symbol][timeframe] = {}
+                self.downloads_completed[symbol][timeframe] = False
                 for ohlc_type in self.ohlcv_types:
                     self.values[symbol][timeframe][ohlc_type] = None
+
+        if resume:
+            tmp_downloads_completed = self.load_downloads_completed()
+            for symbol in self.symbols:
+                for timeframe in self._timeframes:
+                    try:
+                        val = tmp_downloads_completed[symbol][timeframe]
+                        self.downloads_completed[symbol][timeframe] = val
+                    except:
+                        continue
+
+        if reuse_fetch_estimate:
+            try:
+                tmp_estimators = self.load_fetch_estimate()
+            except:
+                raise NoFetchEstimatorAvailable(
+                    "There is no previously defined fetch estimator available."
+                )
+            for symbol in self.symbols:
+                for timeframe in self._timeframes:
+                    try:
+                        val = tmp_estimators[symbol][timeframe]
+                        self.estimators[symbol][timeframe] = val
+                    except:
+                        continue
 
     def fetch(self):
 
@@ -83,7 +113,8 @@ class OHLCVFetcher:
         for symbol in self.symbols:
             for timeframe in self.timeframes:
                 try:
-                    time.sleep(0.2)
+                    if self.downloads_completed[symbol][timeframe]:
+                        continue
                     current_timestamp = self.since
                     if self.estimators[symbol][timeframe]:
                         tqdm_bar = tqdm.trange(self.estimators[symbol][timeframe]['fetches'], desc='{} | {}'.format(symbol, timeframe))
@@ -111,13 +142,17 @@ class OHLCVFetcher:
                             time.sleep(time_to_sleep)
                         if self.estimators[symbol][timeframe]:
                             tqdm_bar.update(1)
+
                     if self.estimators[symbol][timeframe]:
                         tqdm_bar.set_postfix_str('Download finished!')
                         tqdm_bar.close()
+
                     self.save_ohlcv(self.tmp_values[symbol][timeframe],
                                     symbol, timeframe)
-                    print("Finish fetching: {}/{}".format(symbol, timeframe))
-                    time.sleep(0.1)
+
+                    self.downloads_completed[symbol][timeframe] = True
+                    self.save_downloads_completed()
+
                 except:
                     continue
 
@@ -188,6 +223,7 @@ class OHLCVFetcher:
                         total_timeframe[timeframe][k] += v
                         total_symbol[symbol][k] += v
                         total[k] += v
+                    self.save_fetch_estimate()
                 except:
                     continue
 
@@ -222,6 +258,51 @@ class OHLCVFetcher:
                     .format(*items)
             )
 
+    def save_downloads_completed(self):
+        if self.basepath is None:
+            raise NoBasePathGivenError("Please provide a basepath.")
+        dir_path = os.path.join(self.basepath, 'ohlcv', self.exchangeId)
+        if not os.path.exists(dir_path):
+            os.makedirs(dir_path)
+        file_name = 'downloads_completed.pkl'
+        file_path = os.path.join(dir_path, file_name)
+        with open(file_path, 'wb', pickle.HIGHEST_PROTOCOL) as f:
+            pickle.dump(self.downloads_completed, f)
+            # print("Successfully saved downloads_completed to: {}".format(file_path))
+
+    def save_fetch_estimate(self):
+        if self.basepath is None:
+            raise NoBasePathGivenError("Please provide a basepath.")
+        dir_path = os.path.join(self.basepath, 'ohlcv', self.exchangeId)
+        if not os.path.exists(dir_path):
+            os.makedirs(dir_path)
+        file_name = 'fetch_estimate.pkl'
+        file_path = os.path.join(dir_path, file_name)
+        with open(file_path, 'wb', pickle.HIGHEST_PROTOCOL) as f:
+            pickle.dump(self.estimators, f)
+            # print("Successfully saved fetch estimator to: {}".format(file_path))
+
+    def load_fetch_estimate(self):
+        if self.basepath is None:
+            raise NoBasePathGivenError("Please provide a basepath.")
+        dir_path = os.path.join(self.basepath, 'ohlcv', self.exchangeId)
+        file_name = 'fetch_estimate.pkl'
+        file_path = os.path.join(dir_path, file_name)
+        with open(file_path, 'rb', pickle.HIGHEST_PROTOCOL) as f:
+            fetch_estimator = pickle.load(f)
+            return fetch_estimator
+
+
+    def load_downloads_completed(self):
+        if self.basepath is None:
+            raise NoBasePathGivenError("Please provide a basepath.")
+        dir_path = os.path.join(self.basepath, 'ohlcv', self.exchangeId)
+        file_name = 'downloads_completed.pkl'
+        file_path = os.path.join(dir_path, file_name)
+        with open(file_path, 'rb', pickle.HIGHEST_PROTOCOL) as f:
+            downloads_completed = pickle.load(f)
+            return downloads_completed
+
     def save_ohlcv(self, ohlcv, symbol, timeframe, basepath=None):
         if self.basepath is None and basepath is None:
             raise NoBasePathGivenError("Please provide a basepath.")
@@ -237,7 +318,7 @@ class OHLCVFetcher:
         file_path = os.path.join(dir_path, file_name)
         with open(file_path, 'wb', pickle.HIGHEST_PROTOCOL) as f:
             pickle.dump(ohlcv, f)
-            print("Successfully saved ohlcv to: {}".format(file_path))
+            # print("Successfully saved ohlcv to: {}".format(file_path))
 
 
 
@@ -245,4 +326,7 @@ class NoOHLCVSupportError(Exception):
     pass
 
 class NoBasePathGivenError(Exception):
+    pass
+
+class NoFetchEstimatorAvailable(Exception):
     pass
