@@ -32,7 +32,8 @@ class AnalyzeMovingWindowOnline:
                     self.values[pair][ticker_type][analysis] = {}
                     analysis = self.values[pair][ticker_type][analysis]
                     for window_size in self.window_sizes:
-                        analysis[window_size] = np.empty(self.len)
+                        analysis[window_size] = \
+                            np.empty(self.len, dtype=np.float32)
 
     def initial_calculation(self):
         pass
@@ -68,11 +69,9 @@ class AnalyzeMovingWindowOnline:
                     for window, values in windows.items():
                         if window > self.entry_count:
                             values[self.pointer] = 0.0
-                        c_values = window_data[pair][ticker_type]
-                        values[self.pointer] = func(c_values[:window - 1])
-
-
-
+                        else:
+                            c_values = window_data[pair][ticker_type]
+                            values[self.pointer] = func(c_values[:window - 1])
 
 
     @staticmethod
