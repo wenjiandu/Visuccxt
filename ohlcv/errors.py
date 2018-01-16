@@ -1,0 +1,2 @@
+class NoOHLCVSupportError(Exception):
+    pass
