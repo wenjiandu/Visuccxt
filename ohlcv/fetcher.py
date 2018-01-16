@@ -1,13 +1,10 @@
 import datetime
 import math
-import pprint
+import os
+import pickle
 import time
 
 import ccxt
-import os
-
-import pickle
-
 import tqdm
 
 
@@ -117,7 +114,9 @@ class OHLCVFetcher:
                         continue
                     current_timestamp = self.since
                     if self.estimators[symbol][timeframe]:
-                        tqdm_bar = tqdm.trange(self.estimators[symbol][timeframe]['fetches'], desc='{} | {}'.format(symbol, timeframe))
+                        tqdm_bar = tqdm.trange(
+                            self.estimators[symbol][timeframe]['fetches'],
+                            desc='{} | {}'.format(symbol, timeframe))
                     while True:
                         start = time.time()
                         ohlcv = self.exchange.fetch_ohlcv(
@@ -137,7 +136,8 @@ class OHLCVFetcher:
                         #                         "-" * 132))
                         pre_sleep = time.time()
                         time_to_sleep = \
-                            (self.exchange.rateLimit / 1000) - (pre_sleep - start)
+                            (self.exchange.rateLimit / 1000) - (
+                                    pre_sleep - start)
                         if time_to_sleep > 0:  # allows us to fetch at rateLimit
                             time.sleep(time_to_sleep)
                         if self.estimators[symbol][timeframe]:
@@ -234,7 +234,8 @@ class OHLCVFetcher:
               "Total Fetches: {}  |  "
               "Total Time: {} s / {:.1f} m / {:.2f} h".format(
             len(self.symbols), len(self.timeframes), total['steps'],
-            total['fetches'], total['seconds'], total['minutes'], total['hours'])
+            total['fetches'], total['seconds'], total['minutes'],
+            total['hours'])
         )
         print("-" * 121)
 
@@ -292,7 +293,6 @@ class OHLCVFetcher:
             fetch_estimator = pickle.load(f)
             return fetch_estimator
 
-
     def load_downloads_completed(self):
         if self.basepath is None:
             raise NoBasePathGivenError("Please provide a basepath.")
@@ -321,12 +321,13 @@ class OHLCVFetcher:
             # print("Successfully saved ohlcv to: {}".format(file_path))
 
 
-
 class NoOHLCVSupportError(Exception):
     pass
 
+
 class NoBasePathGivenError(Exception):
     pass
+
 
 class NoFetchEstimatorAvailable(Exception):
     pass
