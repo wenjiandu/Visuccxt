@@ -1,10 +1,9 @@
-import ccxt
-from _checks import *
+from exchange_utils._checks import *
 
 
 # TODO: Docstring all functions.
 # --------- [ Maker Fees ] ---------
-from _checks import check_isinstance_list
+from exchange_utils._checks import check_isinstance_list
 
 
 # --------- [ Maker Fees ] ---------

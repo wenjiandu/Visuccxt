@@ -1,20 +1,19 @@
-from _checks import check_isinstance_list, check_isinstance_string
-from funding_fees import has_deposit_fee_for_currency, \
+import pickle
+import time
+from multiprocessing import Pool
+
+import ccxt
+from fuzzywuzzy import fuzz
+
+from exchange_utils.funding_fees import has_deposit_fee_for_currency, \
     has_deposit_fees_for_any_its_currencies, \
     has_deposit_fees_for_any_given_currency, \
     has_withdraw_fee_for_currency, \
     has_withdraw_fees_for_any_its_currencies, \
     has_withdraw_fees_for_any_given_currency
-from pairs import *
-
-import pickle
-import time
-from fuzzywuzzy import fuzz
-from multiprocessing import Pool
-
-
+from exchange_utils.pairs import *
 # --------- [ Exchange IDs ] ---------
-from quote import is_quote_available_at_exchange
+from exchange_utils.quote import is_quote_available_at_exchange
 
 
 def get_all_exchange_ids(exchanges=None):
@@ -75,7 +74,7 @@ def exchange_in_ccxt(exchange_str, extended_search=False, number_results=5):
             accuracies[exchange] = accuracy
 
         accuracies = list(reversed(sorted(
-            accuracies.items(), key=lambda x:x[1])))
+            accuracies.items(), key=lambda x: x[1])))
 
         print("\nThe best matching results for {}:"
               "\n--------------------------".format(exchange_str))
@@ -159,7 +158,6 @@ def load_markets_threaded(exchanges, nr_Threads=20,
     if debug:
         return load_exchanges_from_pickle(pkl_path)
 
-
     check_isinstance_list(exchanges)
 
     start = time.time()
@@ -178,7 +176,7 @@ def load_markets_threaded(exchanges, nr_Threads=20,
     # Remove NoneType-Exchanges (where no data could be pulled)
     exchanges_clean = [x for x in exchanges if x != None]
     print("{} exchanges were not able to provide data and where removed"
-          .format((len(exchanges)-len(exchanges_clean))))
+          .format((len(exchanges) - len(exchanges_clean))))
 
     return exchanges_clean
 
@@ -197,7 +195,7 @@ def safe_exchanges_to_pickle(pickle_file, exchanges=None):
     if exchanges is None:  # quick save of all exchanges
         exchanges = load_markets_threaded()
     with open(pickle_file, 'wb') as f:
-        pickle.dump(exchanges, f,)
+        pickle.dump(exchanges, f, )
         print("Saved '{}' successfully.".format(pickle_file))
     return exchanges
 
@@ -259,7 +257,8 @@ def get_exchanges_supporting_currencies(exchanges, currencies):
     exchanges_holder = []
 
     for currency in currencies:
-        exchanges_support = get_exchanges_supporting_currency(exchanges, currency)
+        exchanges_support = get_exchanges_supporting_currency(exchanges,
+                                                              currency)
         for exchange in exchanges_support:
             if not (exchange.id in exchange_ids_holder):
                 exchanges_holder.append(exchange)
@@ -285,7 +284,8 @@ def get_exchanges_supporting_mutual_currencies(exchanges, currencies):
     exchange_holder = {}
 
     for currency in currencies:
-        exchanges_support = get_exchanges_supporting_currency(exchanges, currency)
+        exchanges_support = get_exchanges_supporting_currency(exchanges,
+                                                              currency)
         for exchange in exchanges_support:
             if not (exchange.id in exchange_ids_holder):
                 exchange_holder[exchange.id] = exchange
@@ -742,7 +742,6 @@ def get_exchange_withdraw_currency_fees_pairs(exchanges, currencies=None):
                     if price != 0:
                         currencies_out[currency] = price
                 pairs[exchange.id] = currencies_out
-
 
     return pairs
 

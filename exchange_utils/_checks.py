@@ -1,4 +1,3 @@
-import ccxt
 from ccxt.base.exchange import Exchange
 
 

@@ -31,7 +31,7 @@ class TickersFetcher:
             tickers = []
             for exchange in self.exchanges:
                 tickers.append(
-                    (exchange.id, exchange.fetch_tickers(self.symbols))
+                    (exchange.id, self._fetch_single_ticker(exchange))
                 )
         # [2] Connection Overhead > Thread Overhead
         else:
@@ -57,6 +57,16 @@ class TickersFetcher:
                 for symbol, values in data.items():
                     if symbol in self.symbols:
                         self.tickers[exchange][symbol] = values
+
+    def _fetch_single_ticker(self, exchange):
+        try:
+            return exchange.fetch_tickers(self.symbols)
+        except:
+            sleep(0.5)
+            print("There is an issue loading the tickers from '{}'."
+                  .format(exchange))
+            self._fetch_single_ticker(exchange)
+
 
     def _fetch_tickers_threaded(self, exchange):
         """Threaded subroutine for fetching tickers."""
