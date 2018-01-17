@@ -41,8 +41,8 @@ class MovingWindow(abc.ABC):
         array([[[0, 1, 2], [1, 2, 3], [2, 3, 4]],
                [[5, 6, 7], [6, 7, 8], [7, 8, 9]]])
 
-        Calculate rolling compute_mean of last dimension:
-        >> np.compute_mean(rolling_window(x, 3), -1)
+        Calculate rolling mean of last dimension:
+        >> np.mean(rolling_window(x, 3), -1)
         array([[ 1.,  2.,  3.],
                [ 6.,  7.,  8.]])
 
@@ -79,6 +79,7 @@ class OHLCVTypeMovingWindow(MovingWindow):
         """
         self.window_size = window_size
         self.data_source = data
+        self.data_windowed = None  # will hold the data via self.init_windows().
 
         # ---- [ Not in use yet ] --------
         self.ohlcv_type = ohlcv_type
@@ -86,8 +87,6 @@ class OHLCVTypeMovingWindow(MovingWindow):
         self.symbol = symbol
         self.timeframe = timeframe
         self.len = len(data) - window_size + 1
-
-        self.data_windowed = None  # will hold the data via self.init_windows().
 
     def init_windows(self):
         """Initializes the moving window for the given ohlcv type"""
@@ -100,7 +99,7 @@ class OHLCVTypeMovingWindow(MovingWindow):
         The 'func'tion needs to calculate the values based on a numpy-array structure:
             --> [[window1],[window2],[window3], ... , [windown]]
 
-        :param func: function that process the numpy-windows (e.g. np.compute_mean(windowed_data, -1)
+        :param func: function that process the numpy-windows (e.g. np.mean(windowed_data, -1)
         :return: the return value of that function.
         """
         return func(self.data_windowed)
@@ -108,7 +107,7 @@ class OHLCVTypeMovingWindow(MovingWindow):
 
 class OHLCVMovingWindow(MovingWindow):
     """
-    This class holds the MovingWindows for one set of ohlcv_data.
+    This class holds the MovingWindows for one set of ohlcv_data. (OHLCVTypeMovingWindow)
     This is usually defined by exchange, symbol and timeframe.
     """
 
@@ -137,8 +136,7 @@ class OHLCVMovingWindow(MovingWindow):
         self.symbol = symbol
         self.timeframe = timeframe
 
-        self.timestamps = None
-
+        self.timestamps = None  # Will be assigned in the loop below.
         self.windows = {}  # Will hold the OHLCVTypeMovingWindow object.
         for ohlcv_type, data in self.data_mappings.items():
             if ohlcv_type == 'timestamp':
@@ -157,11 +155,21 @@ class OHLCVMovingWindow(MovingWindow):
             moving_window.init_windows()
 
     def get_data(self, func):
-        """"""
+        """
+        Processes the windowed data of each ohlcv_type according to the given 'func'tion.
+        This is usually something like mean, max, min and so on.
+
+        :param func: the function that gets applied on the windowed data.
+        :return: the windowed data of the OHLCV that has been transformed by the 'func'tion.
+        """
         data = {}
         for ohlcv_type, moving_window in self.windows.items():
             data[ohlcv_type] = moving_window.get_data(func)
         return data
+
+    def get_timestamps(self):
+        """Returns the timestamps of the OHLCV data."""
+        return self.timestamps
 
 
 class MovingWindowManager(abc.ABC):
@@ -198,7 +206,12 @@ class OHLCVMovingWindowManager(MovingWindowManager):
         self.mappings = mappings
         self.ohlcv_path = ohlcv_path
         self.reader = OHLCVReader(self.ohlcv_path)
+        if ohlcv_types is None:
+            self.ohlcv_types = ['open', 'high', 'low', 'close', 'volume', 'timestamp']
+        else:
+            self.ohlcv_types = ohlcv_types
 
+        # ---------- [ Setup Access Composition ] ---------------
         self.exchanges = set()
         self.symbols = set()
         self.timeframes = set()
@@ -213,18 +226,19 @@ class OHLCVMovingWindowManager(MovingWindowManager):
                     for window in windows:
                         self.window_sizes.add(window)
 
-        # This is the originar OHLCV source data.
-        # self.data: {exchanges: {symbols: {timeframes: {ohlcv_types: data}}}}
+        # This is the original OHLCV source data.
         self.data = {}  # will be filled with self.load_ohlcv_data()
+        # self.data: {exchanges: {symbols: {timeframes: {ohlcv_types: data}}}}
 
         # This holds the access to the MovingWindow objects.
-        # self.moving_windows: {exchanges: {symbols: {timeframes: {windows: OHLCVMovingWindow}}}}
         self.moving_windows = {}  # will be filled with self.init_windows()
+        # self.moving_windows: {exchanges: {symbols: {timeframes: {windows: OHLCVMovingWindow}}}}
 
-        if ohlcv_types is None:
-            self.ohlcv_types = ['open', 'high', 'low', 'close', 'volume', 'timestamp']
-        else:
-            self.ohlcv_types = ohlcv_types
+        # ---------- [ Container for computed data ] ---------------
+        self.timestamps = {}
+        self.data_mean = {}
+        self.data_min = {}
+        self.data_max = {}
 
     def load_ohlcv_data(self):
         """
@@ -268,8 +282,25 @@ class OHLCVMovingWindowManager(MovingWindowManager):
                         self.moving_windows[exchange][symbol][timeframe][window].init_windows()
 
     # -------------------- [ Getter ] ----------------------------
-    def get(self, func, holder, exchanges=None, symbols=None, timeframes=None, windows=None):
+    def get(self, func, data_holder, exchanges=None, symbols=None, timeframes=None,
+            windows=None):
+        """
+        Calls the the 'func'tion on the windowed data of every movingWindow specified
+        in the parameters (or, if None, all available combinations).
 
+        While the structure holding the data is returned, it is also kept as reference
+        in the class instance through the data_holder parameter which corresponds to
+        a property (e.g. self.data_mean).
+
+        :param func: the function that should be computed on top of the windowed data.
+        :param data_holder: structure holding the computed results.
+        :param exchanges: the exchanges in question.
+        :param symbols: the symbols in question.
+        :param timeframes: the timeframes in question.
+        :param windows: the window sizes in question.
+        :return: the data structure holding the data computed by the funcition for all
+                 specified ohlcv windows.
+        """
         if isinstance(exchanges, str):
             raise ValueError("{} needs to be of type list.".format(exchanges))
         if isinstance(symbols, str):
@@ -285,33 +316,82 @@ class OHLCVMovingWindowManager(MovingWindowManager):
         windows = windows if windows else self.window_sizes
 
         for exchange in exchanges:
-            holder[exchange] = {}
+            data_holder[exchange] = {}
             for symbol in symbols:
-                holder[exchange][symbol] = {}
+                data_holder[exchange][symbol] = {}
                 for timeframe in timeframes:
-                    holder[exchange][symbol][timeframe] = {}
+                    data_holder[exchange][symbol][timeframe] = {}
                     for window in windows:
-                        holder[exchange][symbol][timeframe][window] = \
+                        data_holder[exchange][symbol][timeframe][window] = \
                             self.moving_windows[exchange][symbol][timeframe][window].get_data(
                                 func)
-        return holder
+        return data_holder
+
+    def get_timestamps(self):
+        """Returns and caches the timestamps of all OHLCV data."""
+        for exchange in self.exchanges:
+            self.timestamps[exchange] = {}
+            for symbol in self.symbols:
+                self.timestamps[exchange][symbol] = {}
+                for timeframe in self.timeframes:
+                    self.timestamps[exchange][symbol][timeframe] = {}
+                    for window_size in self.window_sizes:
+                        if __name__ == '__main__':
+                            timestamps = self.moving_windows[exchange][symbol][timeframe][window_size].get_timestamps()
+                            self.timestamps[exchange][symbol][timeframe][window_size] = \
+                                timestamps
+        return timestamps
+
 
     def get_mean(self, exchanges=None, symbols=None, timeframes=None, windows=None):
-        self.data_mean = {}
+        """
+        Returns the mean of each window of the specified combination of exchanges,
+        symbols, timeframes and windows.
+        All parameters are optional and, when left out, correspond to all available
+        parameters specified in the class instance.
+
+        :param exchanges: a list of exchanges.
+        :param symbols: a list of symbols.
+        :param timeframes: a list of timeframes.
+        :param windows: a list of window sizes.
+        :return: the data structure holding the mean for all specified ohlcv windows.
+        """
         tmp = self.get(
             self.compute_mean, self.data_mean, exchanges, symbols, timeframes, windows
         )
         return tmp
 
     def get_min(self, exchanges=None, symbols=None, timeframes=None, windows=None):
-        self.data_min = {}
+        """
+        Returns the minimum of each window of the specified combination of exchanges,
+        symbols, timeframes and windows.
+        All parameters are optional and, when left out, correspond to all available
+        parameters specified in the class instance.
+
+        :param exchanges: a list of exchanges.
+        :param symbols: a list of symbols.
+        :param timeframes: a list of timeframes.
+        :param windows: a list of window sizes.
+        :return: the data structure holding the minimum for all specified ohlcv windows.
+        """
         tmp = self.get(
             self.compute_min, self.data_min, exchanges, symbols, timeframes, windows
         )
         return tmp
 
     def get_max(self, exchanges=None, symbols=None, timeframes=None, windows=None):
-        self.data_max = {}
+        """
+        Returns the maximum of each window of the specified combination of exchanges,
+        symbols, timeframes and windows.
+        All parameters are optional and, when left out, correspond to all available
+        parameters specified in the class instance.
+
+        :param exchanges: a list of exchanges.
+        :param symbols: a list of symbols.
+        :param timeframes: a list of timeframes.
+        :param windows: a list of window sizes.
+        :return: the data structure holding the maximum for all specified ohlcv windows.
+        """
         tmp = self.get(
             self.compute_max, self.data_max, exchanges, symbols, timeframes, windows
         )
@@ -320,12 +400,15 @@ class OHLCVMovingWindowManager(MovingWindowManager):
     # -------------------- [ Calculations ] ----------------------------
     @staticmethod
     def compute_mean(x):
+        """Computes the mean of each window."""
         return np.mean(x, -1)
 
     @staticmethod
     def compute_max(x):
+        """Computes the max of each window."""
         return np.max(x, -1)
 
     @staticmethod
     def compute_min(x):
+        """Computes the min of each window."""
         return np.min(x, -1)
