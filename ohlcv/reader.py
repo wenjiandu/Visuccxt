@@ -9,9 +9,9 @@ class OHLCVReader:
         self.ohlcv_path = ohlcv_path
         self.ohlcv_types = ['open', 'high', 'low', 'close', 'volume', 'timestamp']
 
-    def load_ohlcv(self, exchangeId, symbol, timeframe, basepath=None):
+    def load_ohlcv(self, exchangeId, symbol, timeframe, ohlcv_types, basepath=None):
         ohlcv = {}
-        for ohlcv_type in self.ohlcv_types:
+        for ohlcv_type in ohlcv_types:
             ohlcv[ohlcv_type] = \
                 self.load_ohlcv_type(exchangeId, symbol, timeframe, ohlcv_type, basepath)
         return ohlcv
